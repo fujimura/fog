@@ -1,8 +1,7 @@
 module Fog
   module Storage
     class AWS
-      class Real
-
+      module PostObjectHiddenFields
         # Get a hash of hidden fields for form uploading to S3, in the form {:field_name => :field_value}
         # Form should look like: <form action="http://#{bucket_name}.s3.amazonaws.com/" method="post" enctype="multipart/form-data">
         # These hidden fields should then appear, followed by a field named 'file' which is either a textarea or file input.
@@ -22,16 +21,24 @@ module Fog
         # @option options x-amz-meta... meta data tags
         #
         # @see http://docs.amazonwebservices.com/AmazonS3/latest/dev/HTTPPOSTForms.html
-        # 
+        #
         def post_object_hidden_fields(options = {})
           if options['policy']
             options['policy'] = Base64.encode64(Fog::JSON.encode(options['policy'])).gsub("\n", "")
             options['AWSAccessKeyId'] = @aws_access_key_id
+            @hmac ||= Fog::HMAC.new('sha1', @aws_secret_access_key)
             options['Signature'] = Base64.encode64(@hmac.sign(options['policy'])).gsub("\n", "")
           end
           options
         end
+      end
 
+      class Real
+        include PostObjectHiddenFields
+      end
+
+      class Mock
+        include PostObjectHiddenFields
       end
     end
   end
